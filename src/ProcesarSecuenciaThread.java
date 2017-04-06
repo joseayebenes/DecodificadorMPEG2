@@ -15,18 +15,14 @@ public class ProcesarSecuenciaThread implements Runnable {
 
     private LectorBits lb;
     Sequence sq;
+    TablasVLC tablasVLC;
+
+    int [] dct_dc_pred = new int[3];
 
     int picActual;
     int gopActual;
     int sliceActual;
-
-    public ProcesarSecuenciaThread(byte[] data) {
-        lb = new LectorBits(data);
-        sq = new Sequence();
-        picActual=-1;
-        gopActual=-1;
-        sliceActual=-1;
-    }
+    int macroActual;
 
     public ProcesarSecuenciaThread(byte[] data, Sequence sq) {
         lb = new LectorBits(data);
@@ -34,6 +30,12 @@ public class ProcesarSecuenciaThread implements Runnable {
         picActual=-1;
         gopActual=-1;
         sliceActual=-1;
+        macroActual=-1;
+
+        tablasVLC = new TablasVLC();
+        for(int i=0; i<3;i++){
+            dct_dc_pred[i]=0;
+        }
     }
 
     @Override
@@ -69,6 +71,8 @@ public class ProcesarSecuenciaThread implements Runnable {
 
     private void slice() {
         Slice slice = new Slice();
+        sq.picts.get(picActual).slices.add(slice);
+        sliceActual++;
 
         slice.slice_start_code = lb.getNextBits(32);
 
@@ -93,16 +97,273 @@ public class ProcesarSecuenciaThread implements Runnable {
             }
         }
         slice.extra_bit_slice = lb.getNextBits(1)==1;
-/*
+        macroActual=-1;
         do{
             macroblock();
-        }while(lb.showNextBits(23)!= 0x00);*/
+        }while(lb.showNextBits(23)!= 0x00);
 
         lb.next_start_code();
 
-        sq.picts.get(picActual).slices.add(slice);
+
     }
 
+    private void macroblock() {
+        Macroblock macro  =new Macroblock();
+
+        while(lb.showNextBits(11)==0x08){lb.getNextBits(11);}
+
+
+        macro.macroblock_address_increment= (byte) lb.getVLC(tablasVLC.macrobloc_address_increment,11);
+        macroblock_modes(macro);
+
+        if(macro.macroblock_type.macroblock_quant){
+            macro.quantiser_scale_code= (byte) lb.getNextBits(5);
+        }
+
+        if(macro.macroblock_type.macroblock_motion_forward ||
+                (macro.macroblock_type.macroblock_intra&&sq.picts.get(picActual).pice.concealment_motion_vector )){
+            motion_vectors(0,macro);
+        }
+        if(macro.macroblock_type.macroblock_motion_backward){
+            motion_vectors(1,macro);
+        }
+        if(macro.macroblock_type.macroblock_intra&&(macro.macroblock_type.macroblock_intra&&sq.picts.get(picActual).pice.concealment_motion_vector )){
+            macro.marker_bit=lb.getNextBits(1)==1;
+        }
+        if(macro.macroblock_type.macroblock_pattern){
+            coded_block_pattern(macro);
+        }
+
+        for(int i=0; i<12;i++){
+            if(macro.macroblock_type.macroblock_intra){
+                macro.pattern_code[i]=true;
+            }else{
+                macro.pattern_code[i]=false;
+            }
+        }
+        if(macro.macroblock_type.macroblock_pattern){
+            for(int i=0;i<6;i++){
+                if((macro.coded_block_pattern_420 & (1<<(5-i)))==1){
+                    macro.pattern_code[i]=true;
+                }
+            }
+            if(chroma_format(sq.sqe.chroma_format)=="4:2:2"){
+                for(int i=6;i<8;i++){
+                    if((macro.coded_block_pattern_1 & (1<<(7-i)))==1){
+                        macro.pattern_code[i]=true;
+                    }
+                }
+            }
+            if(chroma_format(sq.sqe.chroma_format)=="4:2:4"){
+                for(int i=6;i<812;i++){
+                    if((macro.coded_block_pattern_2 & (1<<(11-i)))==1){
+                        macro.pattern_code[i]=true;
+                    }
+                }
+            }
+        }
+
+        for(int i=0; i<6;i++){
+            System.out.println("------");
+            block(i,macro);
+            System.out.println("......");
+        }
+        System.out.println("");
+        sq.picts.get(picActual).slices.get(sliceActual).macroblocks.add(macro);
+        macroActual++;
+    }
+
+    private void block(int i, Macroblock macro){
+        Block block =new Block();
+        macro.blocks.add(block);
+
+        int n=0;
+        int[] QFS = new int[64];
+
+        boolean eob_not_read=true;
+
+        int dct_dc_size;
+        int dct_dc_differential;
+        int half_range;
+        int dct_diff;
+
+        if(macro.pattern_code[i]){
+            if(macro.macroblock_type.macroblock_intra){
+                n=1;
+                if(i<4){
+                    block.dct_dc_size_luminance=lb.getVLC(tablasVLC.dct_dc_size_luminance,9);
+
+                    if(block.dct_dc_size_luminance!=0){
+                        block.dct_dc_differential=lb.getNextBits(block.dct_dc_size_luminance);
+                    }
+                    dct_dc_size=block.dct_dc_size_luminance;
+                    dct_dc_differential=block.dct_dc_differential;
+                } else {
+                    block.dct_dc_size_chrominance = lb.getVLC(tablasVLC.dct_dc_size_chrominance, 10);
+                    if (block.dct_dc_size_chrominance != 0) {
+                        block.dct_dc_differential = lb.getNextBits(block.dct_dc_size_chrominance);
+                    }
+                    dct_dc_size=block.dct_dc_size_chrominance;
+                    dct_dc_differential=block.dct_dc_differential;
+                }
+
+                if(dct_dc_size==0){
+                    dct_diff=0;
+                }else{
+                    half_range=2^(dct_dc_size-1);
+                    if(dct_dc_differential>=half_range){
+                        dct_diff=dct_dc_differential;
+                    }else{
+                        dct_diff=(dct_dc_differential+1)-(2*half_range);
+                    }
+                }
+                QFS[0]=dct_dc_pred[cc(i)]+dct_diff;
+                dct_dc_pred[cc(i)]=QFS[0];
+
+            }
+
+            while (eob_not_read){
+                RunLevel rl = lb.getDCTCoef(tablasVLC.dct_coeff_zero,!macro.macroblock_type.macroblock_intra);
+                if(rl.level==0&&rl.run==0){
+                    System.out.println("ERROR");
+                    return;
+                }
+                if(rl.run==-1){
+                    eob_not_read=false;
+                    while (n<64){
+                        QFS[n]=0;
+                        n=n+1;
+                    }
+                }else{
+                    for(int m=0; m<rl.run&&n<63;m++){
+                        QFS[n]=0;
+                        n=n+1;
+                    }
+                    QFS[n]=rl.level;
+                    n=n+1;
+                }
+            }
+            System.out.print("");
+        }
+    }
+    int cc(int block_number){
+        if(block_number<3){
+            return 0;
+        }
+        if (block_number==4 || block_number==6|| block_number==8|| block_number==10){
+            return 1;
+        }
+        if (block_number==5 || block_number==7|| block_number==9|| block_number==11){
+            return 2;
+        }
+        return 0;
+
+    }
+    String chroma_format(byte chroma_format){
+        switch (chroma_format){
+            case 0x1:
+                return "4:2:0";
+            case 0x2:
+                return "4:2:2";
+            case 0x3:
+                return "4:4:4";
+        }
+        return "";
+    }
+    private void macroblock_modes(Macroblock macro){
+
+        macro.macroblock_type = getMacroBlockType();
+
+        if (macro.macroblock_type.spatial_temporal_weight_code_flag  ){
+            macro.spatial_temporal_weight_code = (byte) lb.getNextBits(2);
+        }
+
+        if(macro.macroblock_type.macroblock_motion_forward || macro.macroblock_type.macroblock_motion_backward){
+            if(sq.picts.get(picActual).pice.picture_structure == 0x03){
+                if(sq.picts.get(picActual).pice.frame_pred_frame_dct==false){
+                    macro.frame_motion_type = (byte)lb.getNextBits(2);
+                }
+
+            }else{
+                macro.field_motion_type = (byte)lb.getNextBits(2);
+            }
+        }
+
+        if((sq.picts.get(picActual).pice.picture_structure == 0x03)&&
+                (sq.picts.get(picActual).pice.frame_pred_frame_dct==false)&&
+                (macro.macroblock_type.macroblock_intra||macro.macroblock_type.macroblock_pattern)){
+            macro.dct_type = lb.getNextBits(1)==1;
+        }
+
+    }
+
+    private MacroblockType getMacroBlockType() {
+        short type =sq.picts.get(picActual).pich.picture_coding_type ;
+        MacroblockType macroblockType=null;
+        String key;
+        switch (type){
+            case 0x01:
+                key = lb.getVLCKey(tablasVLC.macrobloc_type_I,9);
+                return tablasVLC.macrobloc_type_I.get(key);
+            case 0x02:
+                key = lb.getVLCKey(tablasVLC.macrobloc_type_P,9);
+                return tablasVLC.macrobloc_type_I.get(key);
+            case 0x03:
+                key = lb.getVLCKey(tablasVLC.macrobloc_type_B,9);
+                return tablasVLC.macrobloc_type_I.get(key);
+        }
+        return macroblockType;
+    }
+    private void coded_block_pattern(Macroblock macro){
+        macro.coded_block_pattern_420 = (short) lb.getVLC(tablasVLC.coded_block_pattern,9);
+
+        if(chroma_format(sq.sqe.chroma_format)=="4:2:2"){
+            macro.coded_block_pattern_1 = (byte) lb.getNextBits(2);
+        }
+        if(chroma_format(sq.sqe.chroma_format)=="4:4:4"){
+            macro.coded_block_pattern_2 = (byte) lb.getNextBits(6);
+        }
+
+        for(int i=0;i<12;i++){
+            if(macro.macroblock_type.macroblock_intra){
+                macro.pattern_code[i]=true;
+            }else{
+                macro.pattern_code[i]=false;
+            }
+        }
+
+    }
+    private void motion_vectors( int s , Macroblock macro ){
+        if(macro.field_motion_type==0x01 && macro.field_motion_type==0x03){
+            if(macro.frame_motion_type!=0x02 && macro.frame_motion_type!=0x03){
+                macro.motion_vertical_field_select[0][s] = lb.getNextBits(1)==1;
+            }
+            motion_vector(0,s);
+        }else{
+            macro.motion_vertical_field_select[0][s] = lb.getNextBits(1)==1;
+            motion_vector(0,s);
+            macro.motion_vertical_field_select[1][s] = lb.getNextBits(1)==1;
+            motion_vector(1,s);
+        }
+    }
+    private void motion_vector(int r, int s){
+        Macroblock macro =sq.picts.get(picActual).slices.get(sliceActual).macroblocks.get(macroActual) ;
+        macro.motion_code[r][s][0] = (short) lb.getVLC(tablasVLC.motion_code,11);
+        if((sq.picts.get(picActual).pice.f_code[s][0]!=1 && macro.motion_code[r][s][0]!=0)){
+            macro.motion_residual[r][s][0] = (byte) lb.getNextBits(sq.picts.get(picActual).pice.f_code[s][0]-1);
+        }
+        if(macro.field_motion_type == 0x03){
+            macro.dmvector[0]= (byte) lb.getVLC(tablasVLC.dmvector, 2);
+        }
+        macro.motion_code[r][s][1] = (short) lb.getVLC(tablasVLC.motion_code,11);
+        if(sq.picts.get(picActual).pice.f_code[s][1]!=1 && macro.motion_code[r][s][1]!=0){
+            macro.motion_residual[r][s][1] = (byte) lb.getNextBits(sq.picts.get(picActual).pice.f_code[s][1]-1);
+        }
+        if(macro.field_motion_type == 0x03){
+            macro.dmvector[1]= (byte) lb.getVLC(tablasVLC.dmvector, 2);
+        }
+
+    }
     private void picture_coding_extension() {
         PictureCodingExtension pic = new PictureCodingExtension();
         pic.extension_start_code=lb.getNextBits(32);

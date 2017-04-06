@@ -13,6 +13,7 @@ public class Main {
     private int extension_start_code = 0x1B5;
     private int sequence_end_code = 0x1b7;
     private int group_start_code = 0x1b8;
+    private static int slice_start_code = 0x101;
 
     static ArrayList<Sequence> sequences;
     public static void main(String[] args) {
@@ -26,20 +27,32 @@ public class Main {
         File file = new File(path);
         byte[] fileData = new byte[(int) file.length()];
         DataInputStream dis = null;
+        Thread t;
         try {
             dis = new DataInputStream(new FileInputStream(file));
             dis.readFully(fileData);
             ArrayList<Integer> indices = buscarCabecera(fileData, (byte) sequence_header_code);
 
             ArrayList<Integer> indicesImagenes =  buscarCabecera(fileData, (byte) picture_start_code);
+            ArrayList<Integer> indicesSlice =  buscarCabecera(fileData, (byte) slice_start_code);
+            byte[] data = splitArray(fileData,indicesSlice.get(0),indicesSlice.get(1));
+            for(int i=0;i<data.length;i++){
+                System.out.print(String.format("%02X ", data[i]));
+            }
+            System.out.println("");
+            data =splitArray(fileData,indicesSlice.get(1),indicesSlice.get(2));
+            for(int i=0;i<data.length;i++){
+                System.out.print(String.format("%02X ", data[i]));
 
-            Thread t;
+            }
+            System.out.println("");
+
             for (int i=0; i<indices.size();i++) {
                 sequences.add(new Sequence());
             }
             int j=0;
             long timeInit = System.currentTimeMillis();
-            for (int i=0; i<indices.size()-1;i++) {
+            for (int i=0; i<1;i++) {
                 t = new Thread(tg1,new ProcesarSecuenciaThread(splitArray(fileData,indices.get(i),indices.get(i+1)),sequences.get(j)));
                 t.run();
                 j++;
@@ -51,14 +64,13 @@ public class Main {
             System.out.println("Encontrados "+indicesImagenes.size()+" imagenes");
             System.out.println("Tamaño Archivo "+file.length()+" bytes");
             System.out.println("Tamaño sin comprimir "+(indicesImagenes.size()*720*576*3)+" bytes");
-            System.out.println("Tasa de Compresión "+(float)(file.length()*100 )/(float)(indicesImagenes.size()*720*576*3)+ " %");
+            System.out.println("Tasa de Compresión "+(float)(file.length() *100 )/(float)(indicesImagenes.size()*720*576*1.5)+ " %");
             System.out.println("Duración: "+(float)indicesImagenes.size()/25.0+" s");
-            for(Sequence sq : sequences){
-                System.out.println("/*******************************************/");
-                System.out.println("/-----------------SEQUENCE------------------/");
-                System.out.println("/.........................................../");
-                System.out.println(sq);
+
+            for (int i = 0; i <1; i++) {
+                System.out.println(sequences.get(i));
             }
+
             dis.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
