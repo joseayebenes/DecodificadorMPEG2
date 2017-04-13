@@ -9,6 +9,8 @@ public  class LectorBits {
     private byte[] data;
     private int offset;
 
+    private int byteActual = 0;
+
     public LectorBits(byte[] data, int offset){
         this.data=data;
         this.offset=offset;
@@ -21,6 +23,7 @@ public  class LectorBits {
     public int getNextBits(int length){
         int mask = 0x000000FF;
         int byteOffset = offset/8;
+
         int bitoffset =offset%8;
 
         int bytefin = (byteOffset+(length+bitoffset)/8);
@@ -35,7 +38,7 @@ public  class LectorBits {
             aux  = aux<<8 | mask & data[i];
         }
         offset+=length;
-
+        byteActual = aux;
         // Hacer mascara
         int m = 0;
         for(int i=0;i<length;i++){
@@ -163,13 +166,13 @@ public  class LectorBits {
         for (int i=j; i <= 24; i++) {
             s = showNextBitsAsString(i);
             if (coleccion.containsKey(s)) {
-                r = coleccion.get(s);
+                r = new RunLevel(coleccion.get(s).run,coleccion.get(s).level);
                 getNextBits(i);
                 break;
             }
         }
 
-        if(r.run>0){
+        if(r.run>=0){
             if(getNextBits(1)==1){
                 r.level =-r.level;
             }

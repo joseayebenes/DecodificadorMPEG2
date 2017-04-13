@@ -10,7 +10,7 @@ public class PictureCodingExtension {
     public byte intra_dc_precision;
     public byte picture_structure;
     public boolean top_field_first;
-    public boolean frame_pred_frame_dct;
+    public boolean frame_pred_frame_dct = true;
     public boolean concealment_motion_vector;
     public boolean q_scale_type;
     public boolean intra_vlc_format;

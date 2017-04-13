@@ -188,23 +188,23 @@ public class ProcesarSecuenciaThread implements Runnable {
         int dct_diff;
 
         if(macro.pattern_code[i]){
-            if(macro.macroblock_type.macroblock_intra){
-                n=1;
-                if(i<4){
-                    block.dct_dc_size_luminance=lb.getVLC(tablasVLC.dct_dc_size_luminance,9);
+            if(macro.macroblock_type.macroblock_intra) {
+                n = 1;
+                if (i < 4) {
+                    block.dct_dc_size_luminance = lb.getVLC(tablasVLC.dct_dc_size_luminance, 9);
 
-                    if(block.dct_dc_size_luminance!=0){
-                        block.dct_dc_differential=lb.getNextBits(block.dct_dc_size_luminance);
+                    if (block.dct_dc_size_luminance != 0) {
+                        block.dct_dc_differential = lb.getNextBits(block.dct_dc_size_luminance);
                     }
-                    dct_dc_size=block.dct_dc_size_luminance;
-                    dct_dc_differential=block.dct_dc_differential;
+                    dct_dc_size = block.dct_dc_size_luminance;
+                    dct_dc_differential = block.dct_dc_differential;
                 } else {
                     block.dct_dc_size_chrominance = lb.getVLC(tablasVLC.dct_dc_size_chrominance, 10);
                     if (block.dct_dc_size_chrominance != 0) {
                         block.dct_dc_differential = lb.getNextBits(block.dct_dc_size_chrominance);
                     }
-                    dct_dc_size=block.dct_dc_size_chrominance;
-                    dct_dc_differential=block.dct_dc_differential;
+                    dct_dc_size = block.dct_dc_size_chrominance;
+                    dct_dc_differential = block.dct_dc_differential;
                 }
 
                 if(dct_dc_size==0){
@@ -220,10 +220,13 @@ public class ProcesarSecuenciaThread implements Runnable {
                 QFS[0]=dct_dc_pred[cc(i)]+dct_diff;
                 dct_dc_pred[cc(i)]=QFS[0];
 
+            }else{
+                // FIRST DCT
             }
 
             while (eob_not_read){
-                RunLevel rl = lb.getDCTCoef(tablasVLC.dct_coeff_zero,!macro.macroblock_type.macroblock_intra);
+                RunLevel aux = lb.getDCTCoef(tablasVLC.dct_coeff_zero,!macro.macroblock_type.macroblock_intra);
+                RunLevel rl = new RunLevel(aux.run,aux.level);
                 if(rl.level==0&&rl.run==0){
                     System.out.println("ERROR");
                     return;

@@ -34,20 +34,22 @@ public class Main {
             ArrayList<Integer> indices = buscarCabecera(fileData, (byte) sequence_header_code);
 
             ArrayList<Integer> indicesImagenes =  buscarCabecera(fileData, (byte) picture_start_code);
-            ArrayList<Integer> indicesSlice =  buscarCabecera(fileData, (byte) slice_start_code);
-            byte[] data = splitArray(fileData,indicesSlice.get(0),indicesSlice.get(1));
+            ArrayList<Integer> indicesSliceUno =  buscarCabecera(fileData, (byte) 0x101);
+            ArrayList<Integer> indicesSliceDos =  buscarCabecera(fileData, (byte) 0x102);
+            byte[] data = splitArray(fileData,indicesSliceUno.get(0),indicesSliceDos.get(0));
             for(int i=0;i<data.length;i++){
                 System.out.print(String.format("%02X ", data[i]));
             }
             System.out.println("");
+            /*
             data =splitArray(fileData,indicesSlice.get(1),indicesSlice.get(2));
             for(int i=0;i<data.length;i++){
                 System.out.print(String.format("%02X ", data[i]));
 
             }
             System.out.println("");
-
-            for (int i=0; i<indices.size();i++) {
+*/
+            for (int i=1; i<2;i++) {
                 sequences.add(new Sequence());
             }
             int j=0;
