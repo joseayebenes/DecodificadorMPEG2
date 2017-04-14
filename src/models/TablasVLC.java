@@ -20,6 +20,7 @@ public class TablasVLC {
     public HashMap<String,Integer> dct_dc_size_luminance;
     public HashMap<String, Integer> dct_dc_size_chrominance;
     public HashMap<String, RunLevel> dct_coeff_zero;
+    public HashMap<String, RunLevel> dct_coeff_one;
     public HashMap<String, Integer> coded_block_pattern;
 
 
@@ -38,7 +39,7 @@ public class TablasVLC {
         set_dct_dc_size_chrominance();
         set_dct_coeff_zero();
         set_coded_block_pattern();
-
+        set_dct_coeff_one();
     }
 
     private void set_macrobloc_address_increment(){
@@ -341,9 +342,9 @@ public class TablasVLC {
         dct_coeff_zero.put("000000000010110", new RunLevel(0,34));
         dct_coeff_zero.put("000000000010101", new RunLevel(0,35));
         dct_coeff_zero.put("000000000010100", new RunLevel(0,36));
+        dct_coeff_zero.put("000000000010011", new RunLevel(0,37));
         dct_coeff_zero.put("000000000010011", new RunLevel(0,38));
-        dct_coeff_zero.put("000000000010011", new RunLevel(0,38));
-        dct_coeff_zero.put("000000000010001", new RunLevel(0,29));
+        dct_coeff_zero.put("000000000010001", new RunLevel(0,39));
         dct_coeff_zero.put("000000000010000", new RunLevel(0,40));
         dct_coeff_zero.put("000000000011111", new RunLevel(1,8));
         dct_coeff_zero.put("000000000011110", new RunLevel(1,9));
@@ -440,6 +441,124 @@ public class TablasVLC {
         coded_block_pattern.put("000000010",39);
         coded_block_pattern.put("000000001",0);
 
+    }
+
+    private void set_dct_coeff_one() {
+        dct_coeff_one = new HashMap<String, RunLevel>();
+
+        dct_coeff_one.put("0110", new RunLevel(-1,0));
+        dct_coeff_one.put("10", new RunLevel(0,1));
+        dct_coeff_one.put("010", new RunLevel(1,1));
+        dct_coeff_one.put("110", new RunLevel(0,2));
+        dct_coeff_one.put("00101", new RunLevel(2,1));
+        dct_coeff_one.put("0111", new RunLevel(0,3));
+        dct_coeff_one.put("00111", new RunLevel(3,1));
+        dct_coeff_one.put("000110", new RunLevel(4,1));
+        dct_coeff_one.put("00110", new RunLevel(1,2));
+        dct_coeff_one.put("000111", new RunLevel(5,1));
+        dct_coeff_one.put("0000110", new RunLevel(6,1));
+        dct_coeff_one.put("0000100", new RunLevel(7,1));
+        dct_coeff_one.put("11100", new RunLevel(0,4));
+        dct_coeff_one.put("0000111", new RunLevel(2,2));
+        dct_coeff_one.put("0000101", new RunLevel(8,1));
+        dct_coeff_one.put("1111000", new RunLevel(9,1));
+        dct_coeff_one.put("000001", new RunLevel(-2,0));
+        dct_coeff_one.put("11101", new RunLevel(0,5));
+        dct_coeff_one.put("000101", new RunLevel(0,6));
+        dct_coeff_one.put("1111001", new RunLevel(1,3));
+        dct_coeff_one.put("00100110", new RunLevel(3,2));
+        dct_coeff_one.put("1111010", new RunLevel(10,1));
+        dct_coeff_one.put("00100001", new RunLevel(11,1));
+        dct_coeff_one.put("00100101", new RunLevel(12,1));
+        dct_coeff_one.put("00100100", new RunLevel(13,1));
+        dct_coeff_one.put("000100", new RunLevel(0,7));
+        dct_coeff_one.put("00100111", new RunLevel(1,4));
+        dct_coeff_one.put("11111100", new RunLevel(2,3));
+        dct_coeff_one.put("11111101", new RunLevel(4,2));
+        dct_coeff_one.put("000000100", new RunLevel(5,2));
+        dct_coeff_one.put("000000101", new RunLevel(14,1));
+        dct_coeff_one.put("000000111", new RunLevel(15,1));
+        dct_coeff_one.put("0000001101", new RunLevel(16,1));
+        dct_coeff_one.put("1111011", new RunLevel(0,8));
+        dct_coeff_one.put("1111100", new RunLevel(0,9));
+        dct_coeff_one.put("00100011", new RunLevel(0,10));
+        dct_coeff_one.put("00100010", new RunLevel(0,11));
+        dct_coeff_one.put("00100000", new RunLevel(1,5));
+        dct_coeff_one.put("0000001100", new RunLevel(2,4));
+        dct_coeff_one.put("000000011100", new RunLevel(3,3));
+        dct_coeff_one.put("000000010010", new RunLevel(4,3));
+        dct_coeff_one.put("000000011110", new RunLevel(6,2));
+        dct_coeff_one.put("000000010101", new RunLevel(7,2));
+        dct_coeff_one.put("000000010001", new RunLevel(8,2));
+        dct_coeff_one.put("000000011111", new RunLevel(17,1));
+        dct_coeff_one.put("000000011010", new RunLevel(18,1));
+        dct_coeff_one.put("000000011001", new RunLevel(19,1));
+        dct_coeff_one.put("000000011010", new RunLevel(20,1));
+        dct_coeff_one.put("000000010110", new RunLevel(21,1));
+        dct_coeff_one.put("11111010", new RunLevel(0,12));
+        dct_coeff_one.put("11111011", new RunLevel(0,13));
+        dct_coeff_one.put("11111110", new RunLevel(0,14));
+        dct_coeff_one.put("11111111", new RunLevel(0,15));
+        dct_coeff_one.put("0000000010110", new RunLevel(1,6));
+        dct_coeff_one.put("0000000010101", new RunLevel(1,7));
+        dct_coeff_one.put("0000000010100", new RunLevel(2,5));
+        dct_coeff_one.put("0000000010011", new RunLevel(3,4));
+        dct_coeff_one.put("0000000010010", new RunLevel(5,3));
+        dct_coeff_one.put("0000000010001", new RunLevel(9,2));
+        dct_coeff_one.put("0000000010000", new RunLevel(10,2)); //AQui
+        dct_coeff_one.put("0000000011111", new RunLevel(22,1));
+        dct_coeff_one.put("0000000011110", new RunLevel(23,1));
+        dct_coeff_one.put("0000000011101", new RunLevel(24,1));
+        dct_coeff_one.put("0000000011100", new RunLevel(25,1));
+        dct_coeff_one.put("0000000011011", new RunLevel(26,1));
+        dct_coeff_one.put("00000000011111", new RunLevel(0,16)); //a
+        dct_coeff_one.put("00000000011110", new RunLevel(0,17));
+        dct_coeff_one.put("00000000011101", new RunLevel(0,18));
+        dct_coeff_one.put("00000000011100", new RunLevel(0,19));
+        dct_coeff_one.put("00000000011011", new RunLevel(0,20));
+        dct_coeff_one.put("00000000011010", new RunLevel(0,21));
+        dct_coeff_one.put("00000000011001", new RunLevel(0,22));
+        dct_coeff_one.put("00000000011000", new RunLevel(0,23));
+        dct_coeff_one.put("00000000010111", new RunLevel(0,24));
+        dct_coeff_one.put("00000000010110", new RunLevel(0,25));
+        dct_coeff_one.put("00000000010101", new RunLevel(0,26));
+        dct_coeff_one.put("00000000010100", new RunLevel(0,27));
+        dct_coeff_one.put("00000000010011", new RunLevel(0,28));
+        dct_coeff_one.put("00000000010010", new RunLevel(0,29));
+        dct_coeff_one.put("00000000010001", new RunLevel(0,30));
+        dct_coeff_one.put("00000000010000", new RunLevel(0,31));
+        dct_coeff_one.put("000000000011000", new RunLevel(0,32));
+        dct_coeff_one.put("000000000010111", new RunLevel(0,33));
+        dct_coeff_one.put("000000000010110", new RunLevel(0,34));
+        dct_coeff_one.put("000000000010101", new RunLevel(0,35));
+        dct_coeff_one.put("000000000011100", new RunLevel(0,36));
+        dct_coeff_one.put("000000000010011", new RunLevel(0,37));
+        dct_coeff_one.put("000000000010010", new RunLevel(0,38));
+        dct_coeff_one.put("000000000010110", new RunLevel(0,39)); //AQ
+        dct_coeff_one.put("000000000010000", new RunLevel(0,40));
+        dct_coeff_one.put("000000000011111", new RunLevel(1,8));
+        dct_coeff_one.put("000000000011110", new RunLevel(1,9));
+        dct_coeff_one.put("000000000011101", new RunLevel(1,10));
+        dct_coeff_one.put("000000000011100", new RunLevel(1,11));
+        dct_coeff_one.put("000000000011011", new RunLevel(1,12));
+        dct_coeff_one.put("000000000011010", new RunLevel(1,13));
+        dct_coeff_one.put("000000000011001", new RunLevel(1,14));
+        dct_coeff_one.put("0000000000010011", new RunLevel(1,15));
+        dct_coeff_one.put("0000000000010010", new RunLevel(1,16));
+        dct_coeff_one.put("0000000000010001", new RunLevel(1,17));
+        dct_coeff_one.put("0000000000010000", new RunLevel(1,18));
+        dct_coeff_one.put("0000000000010100", new RunLevel(6,3));
+        dct_coeff_one.put("0000000000011010", new RunLevel(11,2));
+        dct_coeff_one.put("0000000000011001", new RunLevel(12,2));
+        dct_coeff_one.put("0000000000011000", new RunLevel(13,2));
+        dct_coeff_one.put("0000000000010111", new RunLevel(14,2));
+        dct_coeff_one.put("0000000000010110", new RunLevel(15,2));
+        dct_coeff_one.put("0000000000010101", new RunLevel(16,2));
+        dct_coeff_one.put("0000000000011111", new RunLevel(27,1));
+        dct_coeff_one.put("0000000000011110", new RunLevel(28,1));
+        dct_coeff_one.put("0000000000011101", new RunLevel(29,1));
+        dct_coeff_one.put("0000000000011100", new RunLevel(30,1));
+        dct_coeff_one.put("0000000000011011", new RunLevel(31,1));
     }
 
 

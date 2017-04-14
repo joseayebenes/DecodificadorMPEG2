@@ -41,15 +41,15 @@ public class Main {
                 System.out.print(String.format("%02X ", data[i]));
             }
             System.out.println("");
-            /*
-            data =splitArray(fileData,indicesSlice.get(1),indicesSlice.get(2));
+
+            data =splitArray(fileData,indicesSliceDos.get(0),indicesSliceDos.get(0)+200);
             for(int i=0;i<data.length;i++){
                 System.out.print(String.format("%02X ", data[i]));
 
             }
             System.out.println("");
-*/
-            for (int i=1; i<2;i++) {
+
+            for (int i=0; i<1;i++) {
                 sequences.add(new Sequence());
             }
             int j=0;

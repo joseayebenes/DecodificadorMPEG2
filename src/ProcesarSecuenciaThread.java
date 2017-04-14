@@ -1,6 +1,9 @@
 import models.*;
 
 import javax.sound.midi.SysexMessage;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.awt.image.WritableRaster;
 
 public class ProcesarSecuenciaThread implements Runnable {
 
@@ -51,7 +54,7 @@ public class ProcesarSecuenciaThread implements Runnable {
         picture_header();
         picture_coding_extension();
         // extension_and_user_data(2);
-         picture_data();
+        picture_data();
 
         //}while((lb.showNextBits(32)==picture_start_code)||(lb.showNextBits(32)==group_start_code));
 
@@ -63,10 +66,10 @@ public class ProcesarSecuenciaThread implements Runnable {
 
     private void picture_data() {
         sliceActual=-1;
-        //do{
+        do{
             slice();
-        //}while(0x101<= lb.showNextBits(32) && lb.showNextBits(32)<=0x1AF);
-        //lb.next_start_code();
+        }while(0x101<= lb.showNextBits(32) && lb.showNextBits(32)<=0x1AF);
+        lb.next_start_code();
     }
 
     private void slice() {
@@ -168,9 +171,17 @@ public class ProcesarSecuenciaThread implements Runnable {
             block(i,macro);
             System.out.println("......");
         }
+
         System.out.println("");
         sq.picts.get(picActual).slices.get(sliceActual).macroblocks.add(macro);
         macroActual++;
+    }
+
+    public static Image getImageFromArray(int[] pixels, int width, int height) {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        WritableRaster raster = (WritableRaster) image.getData();
+        raster.setPixels(0,0,width,height,pixels);
+        return image;
     }
 
     private void block(int i, Macroblock macro){
@@ -225,12 +236,15 @@ public class ProcesarSecuenciaThread implements Runnable {
             }
 
             while (eob_not_read){
-                RunLevel aux = lb.getDCTCoef(tablasVLC.dct_coeff_zero,!macro.macroblock_type.macroblock_intra);
-                RunLevel rl = new RunLevel(aux.run,aux.level);
-                if(rl.level==0&&rl.run==0){
-                    System.out.println("ERROR");
-                    return;
+                    RunLevel rl = new RunLevel(0,0);
+                if(macro.macroblock_type.macroblock_intra && sq.picts.get(picActual).pice.intra_vlc_format){
+                    RunLevel aux = lb.getDCTCoef(tablasVLC.dct_coeff_one,!macro.macroblock_type.macroblock_intra);
+                     rl = new RunLevel(aux.run,aux.level);
+                }else{
+                    RunLevel aux = lb.getDCTCoef(tablasVLC.dct_coeff_zero,!macro.macroblock_type.macroblock_intra);
+                     rl = new RunLevel(aux.run,aux.level);
                 }
+
                 if(rl.run==-1){
                     eob_not_read=false;
                     while (n<64){
@@ -246,9 +260,140 @@ public class ProcesarSecuenciaThread implements Runnable {
                     n=n+1;
                 }
             }
+            block.dctCoefficents = QFS;
+            int[][] QF = new int[8][8];
+            for(int v=0; v<8;v++){
+                for(int u=0;u<8;u++){
+                    if(sq.picts.get(picActual).pice.alternate_scan){
+                        QF[v][u]=QFS[block.scan[1][v][u]];
+                    }else{
+                        QF[v][u]=QFS[block.scan[0][v][u]];
+                    }
+                }
+            }
+            byte[][] WW = new byte[4][64];
+            int[][][] W = new int[4][8][8];
+            int w=0;
+            if(macro.macroblock_type.macroblock_intra){
+                if(sq.sqe.chroma_format == 1) { //4:2:0
+                    w = 0;
+                }else{
+                    if(cc(i)==0){
+                        w = 0;
+                    }else{
+                        w=2;
+                    }
+                }
+            }else{
+                if(sq.sqe.chroma_format == 1) { //4:2:0
+                    w=1;
+                }else{
+                    if(cc(i)==0){
+                        w=1;
+                    }else{
+                        w=3;
+                    }
+                }
+            }
+
+            WW[0]=sq.sqh.intra_quantiser_matrix;
+            WW[1]=sq.sqh.non_intra_quantiser_matrix;
+
+
+            for(int v=0; v<8;v++) {
+                for (int u = 0; u < 8; u++) {
+                    if(macro.macroblock_type.macroblock_intra){
+                        W[w][v][u] = WW[w][block.scan[0][v][u]];
+                    }else{
+                        W[w][v][u] = WW[w][block.scan[0][v][u]];
+                    }
+
+                }
+            }
+            int k =0;
+            int[][] FFF = new int[8][8];
+            int[][] FF = new int[8][8];
+            int[][] F = new int[8][8];
+            int intra_dc_mult = 0;
+            int intra_dc_precision = sq.picts.get(picActual).pice.intra_dc_precision;
+            switch (intra_dc_precision){
+                case 0:
+                    intra_dc_mult = 8;
+                    break;
+                case 1:
+                    intra_dc_mult = 4;
+                    break;
+                case 2:
+                    intra_dc_mult = 2;
+                    break;
+                case 3:
+                    intra_dc_mult = 1;
+                    break;
+            }
+            int quantiser_scale=0;
+            if(sq.picts.get(picActual).pice.q_scale_type){
+                quantiser_scale = block.quantiser_scale[1][sq.picts.get(picActual).slices.get(sliceActual).quantiser_scale_code];
+
+            }else{
+                quantiser_scale = block.quantiser_scale[0][sq.picts.get(picActual).slices.get(sliceActual).quantiser_scale_code];
+
+            }
+            for(int v=0;v<8;v++){
+                for(int u=0;u<8;u++){
+                    if((u==0)&&(v==0)&&(macro.macroblock_type.macroblock_intra)){
+                        FFF[v][u] = intra_dc_mult * QF[v][u];
+                    }else{
+                        if(macro.macroblock_type.macroblock_intra){
+                            FFF[v][u] = (QF[v][u]*W[w][v][u]*quantiser_scale*2)/32;
+                        }else{
+                            FFF[v][u] = (((QF[v][u] *2)+sign(QF[v][u]))*W[w][v][u]*quantiser_scale)/32;
+                        }
+                    }
+                }
+            }
+            int sum = 0;
+
+            for(int v=0;v<8;v++){
+                for(int u=0; u<8;u++){
+                    if(FFF[v][u]>2047){
+                        FF[v][u] = 2047;
+                    }else{
+                        if(FFF[v][u]<-2048){
+                           FF[v][u]=-2048;
+                        }else{
+                            FF[v][u]=FFF[v][u];
+                        }
+                    }
+                    sum = sum+FF[v][u];
+                    F[v][u] = FF[v][u];
+                }
+            }
+
+            if((sum &1)==0){
+                if((F[7][7]&1)!=0){
+                    F[7][7] = FF[7][7]-1;
+                }else{
+                    F[7][7] = FF[7][7]+1;
+                }
+            }
+            block.F  =F;
+
+            block.f = inverseteDCT(F);
+
             System.out.print("");
         }
     }
+
+    int sign(int x){
+        if(x>0){
+            return 1;
+        }else if(x==0){
+            return 0;
+        }else{
+            return -1;
+        }
+    }
+
     int cc(int block_number){
         if(block_number<3){
             return 0;
@@ -486,6 +631,25 @@ public class ProcesarSecuenciaThread implements Runnable {
         sq.sqe.frame_rate_extension_d = (byte) lb.getNextBits(5);
 
         lb.next_start_code();
+    }
+
+    int[][] inverseteDCT (int[][] F){
+        int N=8;
+        double[] c ={1/Math.sqrt(2),1,1,1,1,1,1,1,1,1};
+        int[][] f = new int[N][N];
+        for (int i=0;i<N;i++) {
+            for (int j=0;j<N;j++) {
+                double sum = 0.0;
+                for (int u=0;u<N;u++) {
+                    for (int v=0;v<N;v++) {
+                        sum+=(c[u]*c[v])/4.0*Math.cos(((2*i+1)/(2.0*N))*u*Math.PI)*Math.cos(((2*j+1)/(2.0*N))*v*Math.PI)*F[u][v];
+                    }
+                }
+                f[i][j]=  (int)Math.round(sum);
+            }
+        }
+        return f;
+
     }
 
 }

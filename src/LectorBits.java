@@ -183,6 +183,9 @@ public  class LectorBits {
             r.level=getNextBits(12);
         }
 
+        if(r.level==0&&r.run==0){
+            System.out.println("ERROR");
+        }
         return  r;
     }
 
